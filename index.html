@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>時間記録</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --s1: #161b22;
+  --s2: #1c2330;
+  --s3: #242d3a;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --orange: #d29922;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --text: #e6edf3;
+  --muted: #7d8590;
+  --border: #30363d;
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 80px;
+}
+/* ── Tab bar ── */
+.tabbar {
+  position: fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:480px;
+  background: var(--s1);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+}
+.tab-btn {
+  flex:1; background:none; border:none; color:var(--muted);
+  padding: 10px 0 14px;
+  font-size: 10px; font-weight:600; letter-spacing:.05em;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  cursor:pointer; transition: color .15s;
+}
+.tab-btn .icon { font-size:22px; line-height:1; }
+.tab-btn.active { color: var(--accent); }
+
+/* ── Pages ── */
+.page { display:none; padding:16px; }
+.page.active { display:block; }
+
+/* ── Header ── */
+.page-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 16px;
+}
+.page-title {
+  font-size:13px; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--accent);
+}
+
+/* ── Month nav ── */
+.month-nav {
+  display:flex; align-items:center; gap:8px;
+  background: var(--s1); border-radius:var(--radius);
+  padding: 10px 14px; margin-bottom:14px;
+}
+.month-nav button {
+  background:none; border:none; color:var(--muted);
+  font-size:22px; cursor:pointer; padding:0 2px; line-height:1;
+  transition:color .15s;
+}
+.month-nav button:hover { color:var(--accent); }
+.month-label { flex:1; text-align:center; font-size:17px; font-weight:700; }
+
+/* ── Stopwatch ── */
+.sw-card {
+  background: var(--s1); border-radius:var(--radius);
+  padding: 24px 20px; margin-bottom:14px; text-align:center;
+}
+.sw-display {
+  font-family: 'Courier New', monospace;
+  font-size: 54px; font-weight:700; letter-spacing:.04em;
+  color:#fff; line-height:1;
+  transition: color .3s;
+}
+.sw-display.running { color: var(--green); }
+.sw-date-row {
+  font-size:12px; color:var(--muted); margin-top:6px; margin-bottom:20px;
+}
+.sw-note-input {
+  width:100%; background:var(--s2); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-size:14px;
+  padding:10px 12px; font-family:inherit; margin-bottom:14px;
+  transition:border-color .15s;
+}
+.sw-note-input:focus { outline:none; border-color:var(--accent); }
+
+.sw-buttons { display:flex; gap:10px; }
+.btn-start {
+  flex:1; padding:14px; border:none; border-radius:10px;
+  font-size:16px; font-weight:700; cursor:pointer; transition:background .15s;
+  background: var(--green); color:#0d1117;
+}
+.btn-stop {
+  flex:1; padding:14px; border:none; border-radius:10px;
+  font-size:16px; font-weight:700; cursor:pointer; transition:background .15s;
+  background: var(--red); color:#fff;
+}
+.btn-stop:disabled { background:var(--s3); color:var(--muted); cursor:default; }
+.btn-start:disabled { background:var(--s3); color:var(--muted); cursor:default; }
+
+/* ── Goal card ── */
+.goal-card {
+  background: var(--s1); border-radius:var(--radius);
+  padding: 16px; margin-bottom:14px;
+}
+.goal-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.goal-label { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.08em; }
+.goal-input-wrap { display:flex; align-items:center; gap:6px; }
+.goal-input {
+  width:80px; background:var(--s2); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-size:15px; font-weight:700;
+  padding:7px 10px; text-align:center; font-family:'Courier New',monospace;
+  transition:border-color .15s;
+}
+.goal-input:focus { outline:none; border-color:var(--accent); }
+.goal-unit { font-size:12px; color:var(--muted); }
+.btn-goal-save {
+  background:var(--accent); color:#0d1117; border:none;
+  border-radius:8px; padding:8px 14px; font-size:13px; font-weight:700;
+  cursor:pointer;
+}
+
+/* ── Progress bar ── */
+.progress-section { margin-top:14px; }
+.progress-meta {
+  display:flex; justify-content:space-between;
+  font-size:12px; color:var(--muted); margin-bottom:6px;
+}
+.progress-bar-wrap {
+  height:8px; background:var(--s3); border-radius:99px; overflow:hidden;
+}
+.progress-bar-fill {
+  height:100%; border-radius:99px;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  transition: width .4s ease;
+}
+.progress-bar-fill.over { background: var(--orange); }
+
+.stats-row {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;
+}
+.stat-box {
+  background:var(--s2); border-radius:10px; padding:12px 14px;
+}
+.stat-box-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+.stat-box-value {
+  font-family:'Courier New',monospace; font-size:22px; font-weight:700; letter-spacing:.03em;
+}
+.stat-box-value.good { color:var(--green); }
+.stat-box-value.warn { color:var(--orange); }
+.stat-box-value.done { color:var(--purple); }
+
+/* ── Manual add ── */
+.manual-card {
+  background:var(--s1); border-radius:var(--radius); padding:16px; margin-bottom:14px;
+}
+.manual-title { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:12px; }
+.input-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.ig { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.ig label { font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ig input, .ig textarea {
+  background:var(--s2); border:1px solid var(--border); border-radius:8px;
+  color:var(--text); font-size:11px; padding:8px 6px; font-family:inherit;
+  transition:border-color .15s; width:100%; min-width:0; overflow:hidden;
+}
+input[type="date"] { font-size:11px; padding:8px 4px; }
+.ig input:focus, .ig textarea:focus { outline:none; border-color:var(--accent); }
+.ig.full { grid-column:1/-1; }
+.ig textarea { resize:none; height:46px; font-size:13px; }
+.btn-add {
+  width:100%; background:var(--s2); border:1px solid var(--border);
+  color:var(--text); border-radius:8px; padding:11px;
+  font-size:14px; font-weight:600; cursor:pointer; transition:background .15s;
+}
+.btn-add:hover { background:var(--s3); }
+
+/* ── Day list ── */
+.day-list { display:flex; flex-direction:column; gap:8px; }
+.day-item {
+  background:var(--s1); border-radius:10px; padding:13px 14px;
+  display:flex; align-items:flex-start; gap:12px;
+  border-left:3px solid var(--border); cursor:pointer;
+  transition:border-color .15s;
+}
+.day-item:hover, .day-item.expanded { border-left-color:var(--accent); }
+.day-num-col { min-width:32px; text-align:center; }
+.day-num-big { font-size:20px; font-weight:700; line-height:1; display:block; }
+.day-dow { font-size:10px; color:var(--muted); }
+.day-body { flex:1; }
+.day-hours { font-family:'Courier New',monospace; font-size:18px; font-weight:700; color:var(--green); }
+.day-sessions { margin-top:6px; display:none; }
+.day-item.expanded .day-sessions { display:block; }
+.session-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:5px 0; border-bottom:1px solid var(--border); font-size:12px;
+}
+.session-row:last-child { border-bottom:none; }
+.session-time { color:var(--muted); font-family:'Courier New',monospace; }
+.session-dur { color:var(--accent); font-family:'Courier New',monospace; font-weight:700; }
+.session-note { color:var(--muted); font-size:11px; margin-top:1px; }
+.btn-del-session {
+  background:none; border:none; color:var(--border); font-size:13px;
+  cursor:pointer; padding:0 4px; transition:color .15s;
+}
+.btn-del-session:hover { color:var(--red); }
+
+.empty-state { text-align:center; padding:40px 0; color:var(--muted); font-size:14px; }
+.empty-icon { font-size:36px; margin-bottom:8px; }
+
+/* ── Toast ── */
+.toast {
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--green); color:#0d1117;
+  padding:9px 20px; border-radius:20px;
+  font-size:13px; font-weight:700;
+  opacity:0; transition:opacity .2s, transform .2s; z-index:200;
+  white-space:nowrap;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ===== TAB: STOPWATCH ===== -->
+<div class="page active" id="page-sw">
+  <div class="page-header" style="margin-top:16px">
+    <div class="page-title">⏱ タイマー</div>
+  </div>
+
+  <div class="sw-card">
+    <div class="sw-display" id="swDisplay">00:00:00</div>
+    <div class="sw-date-row" id="swDateRow">今日 — 記録なし</div>
+    <input class="sw-note-input" id="swNote" type="text" placeholder="メモ（任意）">
+    <div class="sw-buttons">
+      <button class="btn-start" id="btnStart">▶ 開始</button>
+      <button class="btn-stop" id="btnStop" disabled>■ 停止・保存</button>
+    </div>
+  </div>
+
+  <!-- Goal -->
+  <div class="goal-card">
+    <div class="goal-row">
+      <div class="goal-label" id="goalCardMonth"></div>
+      <div class="goal-input-wrap">
+        <input class="goal-input" id="goalInput" type="number" min="0" step="0.5" placeholder="0">
+        <span class="goal-unit">時間</span>
+        <button class="btn-goal-save" id="btnGoalSave">設定</button>
+      </div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-meta">
+        <span id="progressPct">0%</span>
+        <span id="progressLabel">目標未設定</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-box-label">今月の合計</div>
+          <div class="stat-box-value good" id="statTotal">0:00</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-label">残り時間</div>
+          <div class="stat-box-value" id="statRemaining">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: LOG ===== -->
+<div class="page" id="page-log">
+  <div class="page-header" style="margin-top:16px">
+    <div class="page-title">📋 記録</div>
+  </div>
+
+  <div class="month-nav">
+    <button id="logPrev">‹</button>
+    <div class="month-label" id="logMonthLabel"></div>
+    <button id="logNext">›</button>
+  </div>
+
+  <!-- Manual add -->
+  <div class="manual-card">
+    <div class="manual-title">手動で追加</div>
+    <div class="input-row">
+      <div class="ig"><label>日付</label><input type="date" id="mDate"></div>
+      <div class="ig"><label>時間</label><input type="text" id="mHours" placeholder="例: 1:30"></div>
+      <div class="ig full"><label>メモ（任意）</label><textarea id="mNote" placeholder="作業内容など"></textarea></div>
+    </div>
+    <button class="btn-add" id="btnManualAdd">＋ 追加</button>
+  </div>
+
+  <div class="day-list" id="dayList"></div>
+</div>
+
+<!-- ===== TAB BAR ===== -->
+<div class="tabbar">
+  <button class="tab-btn active" data-page="sw">
+    <span class="icon">⏱</span>タイマー
+  </button>
+  <button class="tab-btn" data-page="log">
+    <span class="icon">📋</span>記録
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Storage ──
+function load(k, def) {
+  try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : def; }
+  catch { return def; }
+}
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+// sessions: [{id, date, startTs, endTs, hours, note}]
+let sessions = load('ts_sessions', []);
+// goals: {"2026-06": 40}
+let goals = load('ts_goals', {});
+
+let swStart = null;
+let swTick = null;
+let swElapsed = 0; // ms
+
+let viewYear, viewMonth;
+
+// ── Helpers ──
+function fmtHM(h) {
+  const totalMin = Math.round(h * 60);
+  const hrs = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  return `${hrs}:${String(min).padStart(2,'0')}`;
+}
+function fmtHMS(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+function parseHours(str) {
+  str = str.trim();
+  if (str.includes(':')) {
+    const [h, m] = str.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return null;
+    return h + m / 60;
+  }
+  const n = parseFloat(str);
+  return (!isNaN(n) && n > 0) ? n : null;
+}
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function monthKey(y, m) { return `${y}-${String(m+1).padStart(2,'0')}`; }
+function monthSessions(y, m) {
+  const key = monthKey(y, m);
+  return sessions.filter(s => s.date.startsWith(key));
+}
+function monthTotal(y, m) {
+  return monthSessions(y, m).reduce((sum, s) => sum + s.hours, 0);
+}
+
+// ── Toast ──
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = err ? 'var(--red)' : 'var(--green)';
+  el.style.color = err ? '#fff' : '#0d1117';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── Tab switching ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    if (btn.dataset.page === 'log') { sessions = load('ts_sessions', []); renderLog(); }
+  });
+});
+
+// ── Stopwatch ──
+const swDisplay = document.getElementById('swDisplay');
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+
+function swTick_fn() {
+  swElapsed = Date.now() - swStart;
+  swDisplay.textContent = fmtHMS(swElapsed);
+}
+
+btnStart.addEventListener('click', () => {
+  if (swTick) return;
+  swStart = Date.now() - swElapsed;
+  swTick = setInterval(swTick_fn, 1000);
+  swDisplay.classList.add('running');
+  btnStart.disabled = true;
+  btnStop.disabled = false;
+});
+
+btnStop.addEventListener('click', () => {
+  if (!swTick) return;
+  clearInterval(swTick); swTick = null;
+  swDisplay.classList.remove('running');
+
+  const hours = swElapsed / 3600000;
+  if (hours < 0.003) { // < ~10 sec
+    toast('時間が短すぎます', true);
+    resetSW(); return;
+  }
+  const note = document.getElementById('swNote').value.trim();
+  const date = todayStr();
+  const newSession = {
+    id: Date.now().toString(),
+    date,
+    startTs: swStart,
+    endTs: Date.now(),
+    hours,
+    note
+  };
+  sessions.push(newSession);
+  save('ts_sessions', sessions);
+  sessions = load('ts_sessions', []);
+  toast(`保存しました（${fmtHMS(swElapsed)}）`);
+  document.getElementById('swNote').value = '';
+  resetSW();
+  renderSW();
+});
+
+function resetSW() {
+  swStart = null; swElapsed = 0;
+  swDisplay.textContent = '00:00:00';
+  btnStart.disabled = false; btnStop.disabled = true;
+}
+
+// ── SW page render ──
+function renderSW() {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const key = monthKey(y, m);
+  const goal = goals[key] || 0;
+  const total = monthTotal(y, m);
+  const remaining = Math.max(goal - total, 0);
+  const pct = goal > 0 ? Math.min((total / goal) * 100, 100) : 0;
+
+  document.getElementById('goalCardMonth').textContent =
+    `${y}年${m+1}月 目標`;
+  document.getElementById('goalInput').value = goal || '';
+
+  document.getElementById('statTotal').textContent = fmtHM(total);
+  const remEl = document.getElementById('statRemaining');
+  if (goal === 0) {
+    remEl.textContent = '—';
+    remEl.className = 'stat-box-value';
+  } else if (total >= goal) {
+    remEl.textContent = '達成！';
+    remEl.className = 'stat-box-value done';
+  } else {
+    remEl.textContent = fmtHM(remaining);
+    remEl.className = remaining < 5 ? 'stat-box-value warn' : 'stat-box-value good';
+  }
+
+  const fill = document.getElementById('progressFill');
+  fill.style.width = pct + '%';
+  fill.className = 'progress-bar-fill' + (total > goal && goal > 0 ? ' over' : '');
+
+  document.getElementById('progressPct').textContent =
+    goal > 0 ? Math.round((total / goal) * 100) + '%' : '—';
+  document.getElementById('progressLabel').textContent =
+    goal > 0 ? `目標 ${fmtHM(goal)}` : '目標未設定';
+
+  // Today's note
+  const todayTotal = sessions.filter(s => s.date === todayStr()).reduce((a,s)=>a+s.hours,0);
+  document.getElementById('swDateRow').textContent =
+    `今日 — ${todayTotal > 0 ? fmtHM(todayTotal) + ' 記録済み' : '記録なし'}`;
+}
+
+// ── Goal save ──
+document.getElementById('btnGoalSave').addEventListener('click', () => {
+  const now = new Date();
+  const key = monthKey(now.getFullYear(), now.getMonth());
+  const val = parseFloat(document.getElementById('goalInput').value);
+  if (isNaN(val) || val < 0) { toast('正しい数値を入力してください', true); return; }
+  goals[key] = val;
+  save('ts_goals', goals);
+  toast('目標を設定しました');
+  renderSW();
+});
+
+// ── Log page ──
+function initLogMonth() {
+  const now = new Date();
+  viewYear = now.getFullYear();
+  viewMonth = now.getMonth();
+}
+
+document.getElementById('logPrev').addEventListener('click', () => {
+  viewMonth--; if (viewMonth < 0) { viewMonth=11; viewYear--; }
+  renderLog();
+});
+document.getElementById('logNext').addEventListener('click', () => {
+  viewMonth++; if (viewMonth > 11) { viewMonth=0; viewYear++; }
+  renderLog();
+});
+
+function renderLog() {
+  document.getElementById('logMonthLabel').textContent = `${viewYear}年${viewMonth+1}月`;
+
+  // Group sessions by date
+  const ms = monthSessions(viewYear, viewMonth);
+  const byDate = {};
+  ms.forEach(s => {
+    if (!byDate[s.date]) byDate[s.date] = [];
+    byDate[s.date].push(s);
+  });
+  const dates = Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
+
+  const list = document.getElementById('dayList');
+  if (dates.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div>記録がありません</div>`;
+    return;
+  }
+  list.innerHTML = dates.map(date => {
+    const d = new Date(date + 'T00:00:00');
+    const dayNum = d.getDate();
+    const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+    const dayTotal = byDate[date].reduce((a,s)=>a+s.hours, 0);
+    const sessHTML = byDate[date].map(s => {
+      const start = s.startTs ? new Date(s.startTs).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+      const end   = s.endTs   ? new Date(s.endTs).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+      return `
+        <div class="session-row">
+          <div>
+            <div class="session-time">${start} → ${end}</div>
+            ${s.note ? `<div class="session-note">${esc(s.note)}</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="session-dur">${fmtHMS(s.hours * 3600000)}</span>
+            <button class="btn-del-session" onclick="delSession('${s.id}')">✕</button>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="day-item" onclick="toggleDay(this)">
+        <div class="day-num-col">
+          <span class="day-num-big">${dayNum}</span>
+          <span class="day-dow">${dow}</span>
+        </div>
+        <div class="day-body">
+          <div class="day-hours">${fmtHM(dayTotal)}</div>
+          <div class="day-sessions">${sessHTML}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleDay(el) {
+  el.classList.toggle('expanded');
+}
+
+function delSession(id) {
+  sessions = sessions.filter(s => s.id !== id);
+  save('ts_sessions', sessions);
+  sessions = load('ts_sessions', []);
+  renderLog();
+  renderSW();
+  toast('削除しました');
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Manual add ──
+document.getElementById('mDate').value = todayStr();
+document.getElementById('btnManualAdd').addEventListener('click', () => {
+  const date = document.getElementById('mDate').value;
+  const hoursStr = document.getElementById('mHours').value;
+  const note = document.getElementById('mNote').value.trim();
+  if (!date) { toast('日付を入力してください', true); return; }
+  const hours = parseHours(hoursStr);
+  if (!hours) { toast('時間を正しく入力してください', true); return; }
+  sessions.push({ id: Date.now().toString(), date, hours, note, startTs:null, endTs:null });
+  save('ts_sessions', sessions);
+  sessions = load('ts_sessions', []);
+  document.getElementById('mHours').value = '';
+  document.getElementById('mNote').value = '';
+  const d = new Date(date+'T00:00:00');
+  viewYear = d.getFullYear(); viewMonth = d.getMonth();
+  renderLog(); renderSW();
+  toast('追加しました');
+});
+
+// ── Init ──
+initLogMonth();
+renderSW();
+</script>
+</body>
+</html>
