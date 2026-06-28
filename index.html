@@ -113,6 +113,12 @@ body {
 }
 .btn-stop:disabled { background:var(--s3); color:var(--muted); cursor:default; }
 .btn-start:disabled { background:var(--s3); color:var(--muted); cursor:default; }
+.btn-pause {
+  flex:1; padding:14px; border:none; border-radius:10px;
+  font-size:16px; font-weight:700; cursor:pointer; transition:background .15s;
+  background: var(--orange); color:#0d1117;
+}
+.btn-pause:disabled { background:var(--s3); color:var(--muted); cursor:default; }
 
 /* ── Goal card ── */
 .goal-card {
@@ -281,7 +287,8 @@ input[type="date"] { font-size:11px; padding:8px 4px; }
     <input class="sw-note-input" id="swNote" type="text" placeholder="メモ（任意）">
     <div class="sw-buttons">
       <button class="btn-start" id="btnStart">▶ 開始</button>
-      <button class="btn-stop" id="btnStop" disabled>■ 停止・保存</button>
+      <button class="btn-pause" id="btnPause" disabled>⏸ 一時停止</button>
+      <button class="btn-stop" id="btnStop" disabled>■ 保存</button>
     </div>
   </div>
 
@@ -439,18 +446,31 @@ function swTick_fn() {
   swDisplay.textContent = fmtHMS(swElapsed);
 }
 
+const btnPause = document.getElementById('btnPause');
+
 btnStart.addEventListener('click', () => {
   if (swTick) return;
   swStart = Date.now() - swElapsed;
   swTick = setInterval(swTick_fn, 1000);
   swDisplay.classList.add('running');
   btnStart.disabled = true;
+  btnPause.disabled = false;
   btnStop.disabled = false;
 });
 
-btnStop.addEventListener('click', () => {
+btnPause.addEventListener('click', () => {
   if (!swTick) return;
   clearInterval(swTick); swTick = null;
+  swDisplay.classList.remove('running');
+  btnStart.disabled = false;
+  btnPause.disabled = true;
+  btnPause.textContent = '⏸ 一時停止';
+  btnStart.textContent = '▶ 再開';
+});
+
+btnStop.addEventListener('click', () => {
+  if (swElapsed === 0) return;
+  if (swTick) { clearInterval(swTick); swTick = null; }
   swDisplay.classList.remove('running');
 
   const hours = swElapsed / 3600000;
@@ -480,7 +500,10 @@ btnStop.addEventListener('click', () => {
 function resetSW() {
   swStart = null; swElapsed = 0;
   swDisplay.textContent = '00:00:00';
-  btnStart.disabled = false; btnStop.disabled = true;
+  btnStart.disabled = false;
+  btnStart.textContent = '▶ 開始';
+  btnPause.disabled = true;
+  btnStop.disabled = true;
 }
 
 // ── SW page render ──
