@@ -233,6 +233,37 @@ input[type="date"] { font-size:11px; padding:8px 4px; }
   white-space:nowrap;
 }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── Modal ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.7); z-index:300;
+  align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px; width:100%; max-width:440px;
+  max-height:80vh; overflow-y:auto;
+}
+.modal-title {
+  font-size:15px; font-weight:700; margin-bottom:16px; color:var(--accent);
+}
+.modal-item { margin-bottom:14px; }
+.modal-item-title { font-size:13px; font-weight:700; margin-bottom:4px; }
+.modal-item-body { font-size:13px; color:var(--muted); line-height:1.6; }
+.btn-modal-close {
+  width:100%; margin-top:16px; background:var(--s3); border:none;
+  color:var(--text); border-radius:8px; padding:11px;
+  font-size:14px; font-weight:600; cursor:pointer;
+}
+.btn-info {
+  background:none; border:1px solid var(--border); border-radius:8px;
+  color:var(--muted); font-size:18px; width:32px; height:32px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:color .15s, border-color .15s;
+}
+.btn-info:hover { color:var(--accent); border-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -240,7 +271,8 @@ input[type="date"] { font-size:11px; padding:8px 4px; }
 <!-- ===== TAB: STOPWATCH ===== -->
 <div class="page active" id="page-sw">
   <div class="page-header" style="margin-top:16px">
-    <div class="page-title">⏱ タイマー</div>
+    <div class="page-title">⏱ 奉仕時間記録</div>
+    <button class="btn-info" onclick="document.getElementById('infoModal').classList.add('open')">？</button>
   </div>
 
   <div class="sw-card">
@@ -613,5 +645,24 @@ document.getElementById('btnManualAdd').addEventListener('click', () => {
 initLogMonth();
 renderSW();
 </script>
+
+<div class="modal-overlay" id="infoModal">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ 注意事項</div>
+    <div class="modal-item">
+      <div class="modal-item-title">📦 データについて</div>
+      <div class="modal-item-body">ブラウザのキャッシュ・履歴を削除するとデータが全て消えます。定期的にスクリーンショットでバックアップしておくと安心です。</div>
+    </div>
+    <div class="modal-item">
+      <div class="modal-item-title">🌐 ブラウザについて</div>
+      <div class="modal-item-body">同じURLでもSafariとChromeなど別のブラウザで開くとデータは共有されません。毎回同じブラウザで開いてください。</div>
+    </div>
+    <div class="modal-item">
+      <div class="modal-item-title">⏱ タイマーについて</div>
+      <div class="modal-item-body">タブを閉じたり画面をスリープにするとタイマーが止まる場合があります。タイマー中はアプリを開いたままにしてください。</div>
+    </div>
+    <button class="btn-modal-close" onclick="document.getElementById('infoModal').classList.remove('open')">閉じる</button>
+  </div>
+</div>
 </body>
 </html>
